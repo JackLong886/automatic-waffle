@@ -29,7 +29,7 @@ class GF1:
         dom = xml.dom.minidom.parse(metaxml)
         self.solar_elevation = 90-  float(dom.getElementsByTagName('SolarZenith')[0].firstChild.data)
         if sensors == 'auto':
-            self.gain = np.array([0.0731, 0.073, 0.0619, 0.0562, 0.0594])
+            self.gain = np.array([0.0731, 0.149, 0.1328, 0.1311, 0.1217])
             self.offset = np.array([0, 0, 0, 0, 0])
             self.solarirr = np.array([1371.79, 1945.29, 1854.10, 1542.9, 1080.77])
             self.weights = np.array([0.08159729, 0.14798217, 0.25725194, 0.5131686])
