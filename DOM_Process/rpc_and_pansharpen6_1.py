@@ -11,7 +11,6 @@ import ChinaSensor as sensors
 import json
 import time
 import pywt
-from ChinaSensor import weights
 global global_message
 
 
@@ -37,7 +36,7 @@ def stretch(high, low, msband):
     msband = msband.astype(np.float32)
     for i in range(msband.shape[2]):
         msband[:, :, i] = (msband[:, :, i] - low[i]) / (high[i] - low[i])
-    return np.clip(msband*400, 1, 255).astype(np.uint8)
+    return np.clip(msband*400, 0, 255).astype(np.uint8)
 
 
 def GenExtents(width, height, win_size, win_std=0):
@@ -428,35 +427,35 @@ def fuse_pan_ms(pan_path, ms_path, output_path, Method='Brovey2', ms_win_size=40
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('rpc and pansharpen for pan and ms image')
     parser.add_argument('--json_path', type=str,
-                        default=r''
+                        default=r'C:\Users\DELL\Desktop\tmp50DC.tmp'
                         )
     parser.add_argument('--ms_path', type=str,
-                        default=r'C:\LCJ\image_data\mosaic_img\GF2_PMS2_E110.3_N24.5_20220928_L1A0006781153\GF2_PMS2_E110.3_N24.5_20220928_L1A0006781153-MSS2.tiff',
+                        default=r'D:\GF1\GF2_PMS1_E108.8_N23.0_20221018_L1A0006832687\GF2_PMS1_E108.8_N23.0_20221018_L1A0006832687-MSS1.tiff',
                         # required=True,
                         )
     parser.add_argument('--pan_path', type=str,
-                        default=r'C:\LCJ\image_data\mosaic_img\GF2_PMS2_E110.3_N24.5_20220928_L1A0006781153\GF2_PMS2_E110.3_N24.5_20220928_L1A0006781153-PAN2.tiff',
+                        default=r'D:\GF1\GF2_PMS1_E108.8_N23.0_20221018_L1A0006832687\GF2_PMS1_E108.8_N23.0_20221018_L1A0006832687-PAN1.tiff',
                         # required=True,
                         )
     parser.add_argument('--method', type=str,
-                        default='Brovey',
+                        default='Brovey2',
                         # required=True,
                         help='Brovey, IHS, GSA, GS, Wavelet, Brovey2')
     parser.add_argument('--output_path', type=str,
-                        default=r'C:\Users\DELL\Desktop\tmp',
+                        default=r'D:\CloudlessMosaic',
                         # required=True,
                         )
-    parser.add_argument('--temp_path', type=str, default=r'C:\Users\DELL\Desktop\tmp')
+    parser.add_argument('--temp_path', type=str, default=r'C:\tmp')
     parser.add_argument('--win_size', type=int, default=1024)
     parser.add_argument('--rpc_height', type=float, default=0.0)
     parser.add_argument('--rpc_dem', type=str, default=r'')
-    parser.add_argument('--sensor', type=str, default='GF2')
+    parser.add_argument('--sensor', type=str, default='')
     parser.add_argument('--qrj', type=str, default='')
     parser.add_argument('--dqsq', type=str, default='')
     parser.add_argument('--metaxml', type=str,
-                        default=r'C:\LCJ\image_data\mosaic_img\GF2_PMS2_E110.3_N24.5_20220928_L1A0006781153\GF2_PMS2_E110.3_N24.5_20220928_L1A0006781153-MSS2.xml')
-    parser.add_argument('--savepath', type=str, default=r'C:\Users\DELL\Desktop\tmp\opt2.tif')
-    parser.add_argument('--CostTime', type=str, default='time')
+                        default=r'')
+    parser.add_argument('--savepath', type=str, default=r'C:\temp\opt.tif')
+    parser.add_argument('--CostTime', type=str, default='')
     parser.add_argument('--message', type=str, default='EventProgress')
     opt = parser.parse_args()
     t1 = time.time()
@@ -486,7 +485,7 @@ if __name__ == '__main__':
         opt.savepath = options['savepath']
         opt.message = options['message']
         opt.CostTime = options['cost_time']
-
+        global_message = opt.message
     global_message = opt.message
     sys.stdout.flush()
     print('--------options----------', flush=True)
@@ -508,18 +507,10 @@ if __name__ == '__main__':
         raise (str(opt.method) + '不在备选方法中，参考：' + str(Methods))
 
     image_sensor = sensors.getsensor(opt.sensor)(opt.metaxml)
-
-    try:
-        used_weights = weights[opt.sensor]
-    except:
-        used_weights = [1, 1, 1, 1]
-    print(used_weights)
-
+    used_weights = [1, 1, 1, 1]
     outbands = 3
     cols, rows, ipt = dl.info(opt.ms_path)
-    # hl, ll = arcgisopt(ipt)
-    hl = [749, 693, 658, 658]
-    ll = [245, 136, 110, 110]
+    hl, ll = arcgisopt(ipt)
     if opt.method == 'Brovey':
         print('gdal', flush=True)
 
@@ -534,22 +525,18 @@ if __name__ == '__main__':
                          '-w', str(used_weights[1]),
                          '-w', str(used_weights[2]),
                          '-w', str(used_weights[3]),
-                         '-r', 'near', '-of', 'VRT'),
+                         '-r', 'bilinear', '-of', 'VRT'),
                         )
-
-        col, row, ds, os = dl.io_info(opt.output_path, opt.savepath,
-                                      opt_bands=3,
-                                      opt_driver='GTiff',
-                                      opt_dtype=gdalconst.GDT_Byte)
-        frames = dl.block_tif(col, row, 16)
-        len_frames = len(frames)
-        finish = 1
-        for index, wins in enumerate(frames):
-            windata = dl.block_reader(ds, wins)
-            mask = windata == 0
-            dl.block_writer(os, wins, gamma_trans(stretch(hl, ll, windata)[:, :, (2, 1, 0)], 0.825))
-            print('{}:{}'.format(global_message, finish / len_frames), flush=True)
-            finish += 1
+        # frames = dl.block_tif(cols, rows, opt.win_size)
+        # len_frames = len(frames)
+        # finish = 1
+        # for index, wins in enumerate(frames):
+        #     windata = dl.block_reader(ipt, wins)
+        #     mask = windata == 0
+        #     dl.block_writer(opts, wins, gamma_trans(stretch(hl, ll, windata)[:, :, (2, 1, 0)], 0.625))
+        #
+        #     print('{}:{}'.format(global_message, finish / len_frames), flush=True)
+        #     finish += 1
     else:
         ms_img_resized = gdal_resample(ms_path=ms_rpc, pan_path=pan_rpc, temp_path=opt.temp_path)
         fuse_pan_ms(pan_path=pan_rpc, ms_path=ms_img_resized,
@@ -561,5 +548,5 @@ if __name__ == '__main__':
 
     t2 = time.time()
     print("{}:{}".format(opt.CostTime, time.time() - t1), flush=True)
-    # shutil.rmtree(opt.output_path)
-    # shutil.rmtree(opt.temp_path)
+    shutil.rmtree(opt.output_path)
+    shutil.rmtree(opt.temp_path)

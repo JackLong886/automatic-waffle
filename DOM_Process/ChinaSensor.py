@@ -1,7 +1,7 @@
 import numpy as np
 import xml.dom.minidom
 
-
+# hello world!
 class other:
     datatime = None
     weights = None  # 全色融合权重
@@ -27,9 +27,9 @@ class GF1:
             metaxml:影像的xml
         """
         dom = xml.dom.minidom.parse(metaxml)
-        self.solar_elevation = 90-  float(dom.getElementsByTagName('SolarZenith')[0].firstChild.data)
+        self.solar_elevation = 90- float(dom.getElementsByTagName('SolarZenith')[0].firstChild.data)
         if sensors == 'auto':
-            self.gain = np.array([0.0731, 0.073, 0.0619, 0.0562, 0.0594])
+            self.gain = np.array([0.0731, 0.149, 0.1328, 0.1311, 0.1217])
             self.offset = np.array([0, 0, 0, 0, 0])
             self.solarirr = np.array([1371.79, 1945.29, 1854.10, 1542.9, 1080.77])
             self.weights = np.array([0.08159729, 0.14798217, 0.25725194, 0.5131686])
@@ -203,16 +203,6 @@ def getsensor(name):
         print('没有对应的传感器，已选择通用模式')
     return sensorid
 
-
-weights = {
-    'GF1': [0.08159729, 0.14798217, 0.25725194, 0.5131686],
-    'GF2': [0.09507853, 0.15278158, 0.23041838, 0.52172152],
-    'GF6': [0.1819032,  0.23793505, 0.19763335, 0.3825284],
-    'GF7': [0.12032595, 0.17687117, 0.23341639, 0.46938649],
-    'BJ2': [0.31459283, 0.41627895, 0.26912535, 0.00000287],
-    'BJ3': [0.35972915, 0.35085062, 0.28703749, 0.00238273],
-    'SV1': [0.08656488, 0.15225663, 0.23880252, 0.52237598],
-}
 
 if __name__ == '__main__':
     ser = getsensor('other')()
