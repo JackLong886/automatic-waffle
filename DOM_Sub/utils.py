@@ -17,7 +17,7 @@ def coord_geo2ras(im_geotrans, coord):
 
 class IMAGE2:
     # 读图像文件
-    def read_img(self, filename, ):
+    def read_img(self, filename):
         self.in_file = filename
         self.dataset = gdal.Open(self.in_file)  # 打开文件
         self.im_width = self.dataset.RasterXSize  # 栅格矩阵的列数
